@@ -3,7 +3,7 @@ var net = require('net');
 var HOST = '0.0.0.0';
 var PORT = 6969;
 var clientId = 0;
-var clientList = {};
+var clientList = [];
 var clientsConnected = [];
 
 var ADMIN = 'DA BOSS';
@@ -15,9 +15,9 @@ server.listen(PORT, HOST, function (){
 });
 
 function clientConnected(client){
-  clientId++;
-  client.id = clientId;
-  clientList[clientId] = client;
+  // clientId++;
+  // client.id = clientId;
+  // clientList[clientId] = client;
   clientsConnected.push(client);
 
   // console.log(clientsConnected);
@@ -41,18 +41,36 @@ function clientConnected(client){
 
     console.log('broadcasting ' + client.remoteAddress + ':' + client.remotePort + ' : ' + data);
 
-    if (!clientList.hasOwnProperty(client.remotePort)){
+    function isClient (element, index, array){
       var key = client.remotePort;
-      clientList[key] = data.split('\n')[0];
+      return element[key];
     }
 
-    for (var n in clientList){
-      if (client.remotePort.toString() === n){
-        for (var i = 0; i < clientsConnected.length; i++){
-          clientsConnected[i].write(clientList[n] + ': ' + data);
-        }
-      }
+    if (!clientList.some(isClient)){
+      console.log('does not exist! making new client id');
+      var key = client.remotePort;
+      var newClient = {};
+      newClient[key] = {
+        username: data.split('\n')[0],
+        port: key
+      };
+      clientList.push(newClient);
     }
+
+    // console.log(clientList);
+
+
+    clientsConnected.forEach(function (socket){
+      console.log(socket.remotePort);
+      if (client.remotePort !== socket.remotePort){
+        console.log('it dont match!');
+        socket.write(data);
+      }else {
+        console.log('it matches!');
+
+      }
+    });
+
   });
 }
 
@@ -64,12 +82,12 @@ process.stdin.on('data', function (data){
     var command = data.toString().substring(0, data.toString().indexOf(' '));
     var user = data.toString().substring(data.toString().indexOf(' ') + 1, data.length -1);
 
-    console.log('cmd', command + '|  usr', user);
+    console.log('cmd', command + '    |  usr', user);
     console.log('commencing admin powers');
 
     switch (command){
       case '/ls':
-        console.log(Object.keys(clientList));
+        console.log(clientList);
         break;
       case '/kick':
         console.log('kicking ' + user);
